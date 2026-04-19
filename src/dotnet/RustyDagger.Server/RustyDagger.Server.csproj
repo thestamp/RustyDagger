@@ -3,7 +3,10 @@
   <ItemGroup>
     <ProjectReference Include="..\RustyDagger.Shared\RustyDagger.Shared.csproj" />
     <ProjectReference Include="..\RustyDagger.Data\RustyDagger.Data.csproj" />
-    <ProjectReference Include="..\RustyDagger.Client\RustyDagger.Client.csproj" />
+    <!-- Excluded during Docker publish to avoid Blazor WASM pipeline bug in preview SDK.
+         Client is published separately and its wwwroot is copied in by the Dockerfile. -->
+    <ProjectReference Include="..\RustyDagger.Client\RustyDagger.Client.csproj"
+                      Condition="'$(ExcludeClientReference)' != 'true'" />
   </ItemGroup>
 
   <ItemGroup>

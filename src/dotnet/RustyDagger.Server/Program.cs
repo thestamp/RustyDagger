@@ -46,11 +46,11 @@ builder.Services.AddCors(opt =>
 
 var app = builder.Build();
 
-// Auto-migrate database
+// Auto-create database schema (EnsureCreated creates tables directly from the model)
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<DragonCourtDbContext>();
-    db.Database.Migrate();
+    db.Database.EnsureCreated();
 }
 
 app.UseCors();
