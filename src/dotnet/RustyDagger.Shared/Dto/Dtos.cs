@@ -37,6 +37,9 @@ public class HeroSummary
     public int Wits { get; set; }
     public int Charm { get; set; }
     public int Fame { get; set; }
+    public int Actions { get; set; }
+    public int Wounds { get; set; }
+    public int Experience { get; set; }
     public string Place { get; set; } = string.Empty;
 }
 

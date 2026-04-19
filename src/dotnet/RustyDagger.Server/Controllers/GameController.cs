@@ -71,8 +71,10 @@ public class GameController : ControllerBase
         hero.Actions--;
         hero.State = HeroState.Quest;
 
-        // Generate encounter
+        // Generate encounter and persist it
         var mob = _heroService.GenerateEncounter(hero);
+        _heroService.SaveMonster(mob, entity);
+
         var combat = new CombatEngine(_rng);
         var actions = combat.GetAvailableActions(hero, mob, true);
 
@@ -103,37 +105,83 @@ public class GameController : ControllerBase
         if (!Enum.TryParse<CombatAction>(req.Action, out var action))
             return BadRequest(new { error = "Invalid action." });
 
-        // Re-generate encounter (stateless combat for simplicity)
-        var mob = _heroService.GenerateEncounter(hero);
+        // Load persisted monster
+        var mob = _heroService.LoadMonster(entity);
+        if (mob == null)
+            return BadRequest(new { error = "No active encounter." });
+
         var combat = new CombatEngine(_rng);
         var result = combat.ResolveCombat(hero, mob, action);
 
-        // Process combat result
         var response = BuildStateResponse(hero, heroId);
         response.Log = result.Log;
 
         if (result.HeroKilled)
         {
-            hero.State = HeroState.Dead;
-            response.Screen = "Dead";
+            // Apply death penalty — Java: killedScreen
+            var deathLog = hero.ApplyDeathPenalty(_rng, losePack: true);
+            response.Log.AddRange(deathLog);
+            response.Screen = "QuestResult";
+            _heroService.ClearMonster(entity);
         }
         else if (result.MonsterKilled || result.MonsterFled || result.Controlled || result.Swindled || result.HeroFled)
         {
-            // Loot
+            // Victory / encounter end
             if (result.MonsterKilled)
             {
-                hero.Fame += mob.CalculateFame();
-                hero.GainGuts(mob.Guts, _rng);
+                // Loot
                 foreach (var loot in mob.Pack)
                     hero.AddPackItem(loot.Name, loot.Count);
-                response.Log.Add($"You defeated {mob.Name}! (+{mob.CalculateFame()} fame)");
+                response.Log.Add($"You defeated {mob.Name}!");
+
+                // Fame
+                int fame = mob.CalculateFame();
+                hero.Fame += fame;
+                response.Log.Add($"+{fame} fame");
+
+                // Experience (Java: baseExp + (2g+w+c)*weight/4)
+                int exp = mob.CalculateExp();
+                if (exp > 0)
+                {
+                    hero.Experience += exp;
+                    response.Log.Add($"+{exp} experience");
+                }
+
+                // Stat gains — Java gives different stats based on combat action
+                string? gutsMsg = TryGainStat(hero, "Guts", mob.Guts);
+                string? witsMsg = TryGainStat(hero, "Wits", mob.Wits);
+                string? charmMsg = TryGainStat(hero, "Charm", mob.Charm);
+                if (gutsMsg != null) response.Log.Add(gutsMsg);
+                if (witsMsg != null) response.Log.Add(witsMsg);
+                if (charmMsg != null) response.Log.Add(charmMsg);
+
+                // Level up check
+                while (hero.TryToLevel())
+                    response.Log.Add($"+++ You Have Gained A Level — Level {hero.Level} +++ (+2 Guts, +2 Wits, +2 Charm)");
             }
+
+            if (result.HeroFled)
+                response.Log.Add("You escaped!");
+
+            if (result.Controlled)
+                response.Log.Add($"{mob.Name} is under your control!");
+
+            if (result.Swindled)
+                response.Log.Add($"You swindled {mob.Name}!");
+
             hero.State = HeroState.Town;
             response.Screen = "QuestResult";
+            _heroService.ClearMonster(entity);
         }
         else
         {
-            // Combat continues
+            // Combat continues — increment stance per Java Options.nextRound()
+            if (mob.Stance >= 2 && mob.Stance <= 3) // Defensive or Hostile
+                mob.Stance++;
+
+            // Persist updated monster
+            _heroService.SaveMonster(mob, entity);
+
             var nextActions = combat.GetAvailableActions(hero, mob, false);
             response.Screen = "Battle";
             response.CurrentMonster = new MonsterView
@@ -151,6 +199,27 @@ public class GameController : ControllerBase
         return Ok(response);
     }
 
+    private static string? TryGainStat(Hero hero, string stat, int weight)
+    {
+        int before;
+        switch (stat)
+        {
+            case "Guts":
+                before = hero.Guts;
+                hero.GainGuts(weight, new Rng());
+                return hero.Guts > before ? "*** You grow Stronger +1 Guts! ***" : null;
+            case "Wits":
+                before = hero.Wits;
+                hero.GainWits(weight, new Rng());
+                return hero.Wits > before ? "*** You grow Smarter +1 Wits! ***" : null;
+            case "Charm":
+                before = hero.Charm;
+                hero.GainCharm(weight, new Rng());
+                return hero.Charm > before ? "*** You grow Happier +1 Charm! ***" : null;
+            default: return null;
+        }
+    }
+
     [HttpPost("{heroId}/rest")]
     public async Task<ActionResult<GameStateResponse>> Rest(int heroId)
     {
@@ -159,15 +228,50 @@ public class GameController : ControllerBase
 
         var hero = _heroService.ToGameHero(entity);
 
+        // Java advance(): fame decays by 10%, plus social rank * 10
+        int fame = hero.Fame;
+        int rank = hero.Social;
+        hero.Fame = (fame - (fame / 10)) + (rank * 10);
+
+        // Stipend from social rank: rank^2 * 50
+        int stipend = rank * rank * 50;
+        if (stipend > 0)
+            hero.AddPackItem("Marks", stipend);
+
+        // Age: Java checks Unaging trait
+        if (!hero.HasTrait("Unaging"))
+            hero.Age++;
+        else
+        {
+            if (hero.Age > 33) hero.Age--;
+            else if (hero.Age < 33) hero.Age++;
+        }
+        if (hero.Age < 15) hero.Age = 15;
+
+        // Reset fatigue, heal, recalculate actions
+        hero.Fatigue = 0;
         hero.FullHeal();
         hero.Actions = hero.CalculateActions();
-        hero.Age++;
         hero.State = HeroState.Town;
+
+        // Reset guild uses per Java advance()
+        hero.FightUses = hero.FightRank;
+        hero.MagicUses = hero.MagicRank;
+        hero.ThiefUses = hero.ThiefRank;
+        hero.IeatsuUses = hero.IeatsuRank;
+        if (hero.HasTrait("Berzerk")) hero.FightUses += (hero.Level + 7) / 8;
+        if (hero.HasTrait("Mystic")) hero.MagicUses += (hero.Level + 7) / 8;
+        if (hero.HasTrait("Trader")) hero.ThiefUses += (hero.Level + 7) / 8;
+
+        // Clear any persisted monster
+        _heroService.ClearMonster(entity);
 
         await _heroService.SaveHeroAsync(hero, entity);
 
         var response = BuildStateResponse(hero, heroId);
         response.Log.Add($"You rest at the inn. A new day dawns. (Age: {hero.Age})");
+        if (stipend > 0)
+            response.Log.Add($"You receive a stipend of {stipend} marks.");
         return Ok(response);
     }
 
@@ -184,6 +288,9 @@ public class GameController : ControllerBase
                 Wits = hero.Wits,
                 Charm = hero.Charm,
                 Fame = hero.Fame,
+                Actions = hero.Actions,
+                Wounds = hero.Wounds,
+                Experience = hero.Experience,
                 Place = hero.Place.ToString()
             },
             Screen = hero.State.ToString(),

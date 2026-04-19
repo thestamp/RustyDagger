@@ -16,6 +16,8 @@ public class Hero
 
     public int Actions { get; set; } = 30;
     public int Wounds { get; set; }
+    public int Experience { get; set; }
+    public int Fatigue { get; set; }
 
     public GamePlace Place { get; set; } = GamePlace.Fields;
     public HeroState State { get; set; } = HeroState.Create;
@@ -166,22 +168,37 @@ public class Hero
 
     public int CalculateActions()
     {
-        return 27 + 3 * Level;
+        return Math.Max(0, CalculateBaseActions() - Fatigue - CalculateOverload());
+    }
+
+    public int CalculateOverload()
+    {
+        int max = PackMax();
+        int size = Pack.Count;
+        return size > max ? size - max : 0;
+    }
+
+    public int PackMax()
+    {
+        int max = 60;
+        if (HasTrait("Trader")) max += 20;
+        if (HasTrait("Merchant")) max += 20;
+        return max;
     }
 
     public void GainGuts(int weight, Engine.Rng rng)
     {
-        if (rng.Roll(Guts) >= weight) Guts++;
+        if (rng.Roll(Guts) < weight) Guts++;
     }
 
     public void GainWits(int weight, Engine.Rng rng)
     {
-        if (rng.Roll(Wits) >= weight) Wits++;
+        if (rng.Roll(Wits) < weight) Wits++;
     }
 
     public void GainCharm(int weight, Engine.Rng rng)
     {
-        if (rng.Roll(Charm) >= weight) Charm++;
+        if (rng.Roll(Charm) < weight) Charm++;
     }
 
     public void LevelUp()
@@ -190,11 +207,103 @@ public class Hero
         Guts += 2;
         Wits += 2;
         Charm += 2;
+        Fame += Level;
         if (HasTrait("Trader") && Level % 8 == 0)
             ThiefRank++;
         if (HasTrait("Berzerk") && Level % 8 == 0)
             FightRank++;
         if (HasTrait("Mystic") && Level % 8 == 0)
             MagicRank++;
+    }
+
+    /// <summary>Experience needed to level up: 50 * 1.5^(level-1)</summary>
+    public int CalculateRaise() => (int)(50 * Math.Pow(1.5, Level - 1));
+
+    /// <summary>Try to level up if enough experience. Returns true if leveled.</summary>
+    public bool TryToLevel()
+    {
+        int raise = CalculateRaise();
+        if (Experience < raise) return false;
+        Experience -= raise;
+        LevelUp();
+        return true;
+    }
+
+    /// <summary>Apply death penalty per Java killedScreen(). Returns log messages.</summary>
+    public List<string> ApplyDeathPenalty(Engine.Rng rng, bool losePack)
+    {
+        var log = new List<string>();
+        int cost = CalculateBaseActions() / 4;
+
+        // Check for Bottled Faery
+        if (GetPackCount("Bottled Faery") > 0)
+        {
+            RemovePackItem("Bottled Faery", 1);
+            log.Add("A Bottled Faery breaks free from your pack and transports you to the healers!");
+            // No penalties — heal and place in fields
+            Wounds = Guts - (Guts / Level);
+            CureDisease();
+            State = HeroState.Town;
+            Place = GamePlace.Fields;
+            return log;
+        }
+
+        // Apply penalties
+        log.Add("You are wounded mortally and fall to the ground.");
+        log.Add("A friendly woodsman finds you and drags you to the healers.");
+
+        // Fame reduced by 10%
+        Fame = (Fame * 9) / 10;
+        log.Add($"*** Your fame diminishes. ***");
+
+        // Lose quests (fatigue)
+        Fatigue += cost;
+        log.Add($"*** You lose {cost} quests. ***");
+
+        // Lose half pack items
+        if (losePack)
+        {
+            LoseHalfPack(rng);
+            log.Add("*** Half your equipment is lost. ***");
+        }
+
+        // Partial heal: wounds = guts - guts/level
+        Wounds = Guts - (Guts / Level);
+        CureDisease();
+
+        // Revive in Fields
+        State = HeroState.Town;
+        Place = GamePlace.Fields;
+
+        return log;
+    }
+
+    public void CureDisease()
+    {
+        ClearStatus("Disease");
+        ClearStatus("Blind");
+        ClearStatus("Panic");
+    }
+
+    public void LoseHalfPack(Engine.Rng rng)
+    {
+        var toRemove = new List<PackItem>();
+        foreach (var item in Pack)
+        {
+            if (item.Name.Equals("Marks", StringComparison.OrdinalIgnoreCase)) continue;
+            if (rng.Percent(50))
+            {
+                int half = item.Count / 2;
+                if (half > 0) item.Count -= half;
+                else toRemove.Add(item);
+            }
+        }
+        foreach (var item in toRemove)
+            Pack.Remove(item);
+    }
+
+    public int CalculateBaseActions()
+    {
+        return HasTrait("Quick") ? 27 + 4 * Level : 27 + 3 * Level;
     }
 }

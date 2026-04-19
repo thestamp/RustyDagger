@@ -122,6 +122,7 @@ public class HeroService
             Favor = entity.Favor,
             Actions = entity.Actions,
             Wounds = entity.Wounds,
+            Experience = entity.Experience,
             Place = Enum.TryParse<GamePlace>(entity.Place, out var p) ? p : GamePlace.Fields,
             State = Enum.TryParse<HeroState>(entity.State, out var s) ? s : HeroState.Town,
             FightRank = entity.FightRank,
@@ -179,6 +180,7 @@ public class HeroService
         entity.Actions = hero.Actions;
         entity.Wounds = hero.Wounds;
         entity.Marks = hero.Marks;
+        entity.Experience = hero.Experience;
         entity.Place = hero.Place.ToString();
         entity.State = hero.State.ToString();
         entity.FightRank = hero.FightRank;
@@ -209,5 +211,26 @@ public class HeroService
         var templates = MonsterData.GetMonstersForArea(hero.Place);
         var template = _rng.Pick(templates);
         return template.Instantiate(hero, _rng);
+    }
+
+    public void SaveMonster(Monster mob, HeroEntity entity)
+    {
+        entity.CurrentMonsterJson = JsonSerializer.Serialize(mob, _jsonOpts);
+    }
+
+    public Monster? LoadMonster(HeroEntity entity)
+    {
+        if (string.IsNullOrWhiteSpace(entity.CurrentMonsterJson))
+            return null;
+        try
+        {
+            return JsonSerializer.Deserialize<Monster>(entity.CurrentMonsterJson, _jsonOpts);
+        }
+        catch { return null; }
+    }
+
+    public void ClearMonster(HeroEntity entity)
+    {
+        entity.CurrentMonsterJson = null;
     }
 }

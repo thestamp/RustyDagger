@@ -36,10 +36,16 @@ public class HeroEntity
     [MaxLength(500)]
     public string Traits { get; set; } = string.Empty;
 
+    // Experience toward next level
+    public int Experience { get; set; }
+
     // Serialized JSON for complex fields
     public string GearJson { get; set; } = "[]";
     public string PackJson { get; set; } = "[]";
     public string LooksJson { get; set; } = "{}";
+
+    // Persisted monster state for multi-round combat
+    public string? CurrentMonsterJson { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime LastPlayed { get; set; } = DateTime.UtcNow;

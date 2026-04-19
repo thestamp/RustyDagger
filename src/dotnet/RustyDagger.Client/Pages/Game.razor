@@ -25,6 +25,10 @@ else
                 <div style="text-align:center;margin-top:0.5rem;color:var(--dc-gold);font-size:0.85rem">
                     Fame: @State.CurrentState.Hero.Fame
                 </div>
+                <div style="text-align:center;color:var(--dc-muted);font-size:0.8rem">
+                    Actions: @State.CurrentState.Hero.Actions &bull;
+                    Health: @(State.CurrentState.Hero.Guts - State.CurrentState.Hero.Wounds)/@State.CurrentState.Hero.Guts
+                </div>
             </div>
 
             <div class="panel">
@@ -51,7 +55,14 @@ else
                     <div class="panel" style="text-align:center">
                         <h2 style="color:var(--dc-danger)">You Have Fallen</h2>
                         <p style="color:var(--dc-muted)">Your hero has been slain in battle.</p>
-                        <button class="btn btn-primary" @onclick="ReturnToHeroes">Return to Heroes</button>
+                        @if (State.CurrentState.Log?.Any() == true)
+                        {
+                            @foreach (var msg in State.CurrentState.Log)
+                            {
+                                <p>@msg</p>
+                            }
+                        }
+                        <button class="btn btn-gold btn-block" style="margin-top:1rem" @onclick="RefreshState">Continue</button>
                     </div>
                     break;
 
