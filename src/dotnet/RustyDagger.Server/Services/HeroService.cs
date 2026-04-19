@@ -43,8 +43,8 @@ public class HeroService
 
     public async Task<HeroEntity> CreateHeroAsync(int accountId, CreateHeroRequest req)
     {
-        // Validate build points: guts + wits + charm + money + trait_cost = 20 + 12 (base)
-        int spent = (req.Guts - 4) + (req.Wits - 4) + (req.Charm - 4) + (req.Money - 1);
+        // Validate build points: each point above base (4/4/4/0) costs 1, trait has fixed cost, total = 20
+        int spent = (req.Guts - 4) + (req.Wits - 4) + (req.Charm - 4) + req.Money;
         int traitCost = req.Trait switch
         {
             "Noble" => 12,
