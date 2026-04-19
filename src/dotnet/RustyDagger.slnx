@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="RustyDagger.Client/RustyDagger.Client.csproj" />
+  <Project Path="RustyDagger.Data/RustyDagger.Data.csproj" />
+  <Project Path="RustyDagger.Server/RustyDagger.Server.csproj" />
+  <Project Path="RustyDagger.Shared/RustyDagger.Shared.csproj" />
+</Solution>

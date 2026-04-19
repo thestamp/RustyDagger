@@ -1,0 +1,105 @@
+@page "/create"
+@inject ApiClient Api
+@inject NavigationManager Nav
+
+<div class="auth-panel panel">
+    <h2 class="panel-title">Create Hero</h2>
+
+    <EditForm Model="model" OnValidSubmit="HandleCreate" FormName="createHero">
+        <DataAnnotationsValidator />
+
+        <div class="form-group">
+            <label>Hero Name (4–15 characters)</label>
+            <InputText @bind-Value="model.Name" />
+        </div>
+
+        <div class="form-group">
+            <label>Background Trait</label>
+            <select @bind="model.Trait" @bind:after="RecalcPoints">
+                <option value="">None (cost 0)</option>
+                <option value="Warrior">Warrior — Fighter rank +1 (cost 8)</option>
+                <option value="Wizard">Wizard — Magic rank +1 (cost 9)</option>
+                <option value="Trader">Trader — Thief rank +1 (cost 10)</option>
+                <option value="Noble">Noble — Social +1 (cost 12)</option>
+            </select>
+        </div>
+
+        <p style="margin:0.5rem 0;color:var(--dc-gold)">Build Points: @PointsRemaining / 20</p>
+
+        <div class="form-group">
+            <label>Guts: @model.Guts</label>
+            <input type="range" min="4" max="@MaxGuts" @bind="model.Guts" @bind:after="RecalcPoints" />
+        </div>
+
+        <div class="form-group">
+            <label>Wits: @model.Wits</label>
+            <input type="range" min="4" max="@MaxWits" @bind="model.Wits" @bind:after="RecalcPoints" />
+        </div>
+
+        <div class="form-group">
+            <label>Charm: @model.Charm</label>
+            <input type="range" min="4" max="@MaxCharm" @bind="model.Charm" @bind:after="RecalcPoints" />
+        </div>
+
+        <div class="form-group">
+            <label>Starting Gold: @model.Money</label>
+            <input type="range" min="0" max="@MaxMoney" @bind="model.Money" @bind:after="RecalcPoints" />
+        </div>
+
+        <button type="submit" class="btn btn-gold btn-block" disabled="@(busy || PointsRemaining < 0)">
+            Create Hero
+        </button>
+    </EditForm>
+
+    @if (!string.IsNullOrEmpty(error))
+    {
+        <p class="error-msg">@error</p>
+    }
+</div>
+
+@code {
+    private CreateHeroRequest model = new() { Guts = 6, Wits = 6, Charm = 6, Money = 1 };
+    private bool busy;
+    private string? error;
+
+    private int TraitCost => model.Trait switch
+    {
+        "Noble" => 12,
+        "Trader" => 10,
+        "Wizard" => 9,
+        "Warrior" => 8,
+        _ => 0
+    };
+
+    private int PointsSpent => (model.Guts - 4) + (model.Wits - 4) + (model.Charm - 4) + model.Money + TraitCost;
+    private int PointsRemaining => 20 - PointsSpent;
+
+    private int MaxGuts => Math.Min(20, model.Guts + PointsRemaining);
+    private int MaxWits => Math.Min(20, model.Wits + PointsRemaining);
+    private int MaxCharm => Math.Min(20, model.Charm + PointsRemaining);
+    private int MaxMoney => Math.Min(12, model.Money + PointsRemaining);
+
+    private void RecalcPoints() { StateHasChanged(); }
+
+    protected override void OnInitialized()
+    {
+        if (!Api.IsAuthenticated) Nav.NavigateTo("/");
+    }
+
+    private async Task HandleCreate()
+    {
+        if (PointsRemaining < 0) return;
+        busy = true;
+        error = null;
+        try
+        {
+            await Api.CreateHeroAsync(model);
+            Nav.NavigateTo("/heroes");
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally { busy = false; }
+    }
+}

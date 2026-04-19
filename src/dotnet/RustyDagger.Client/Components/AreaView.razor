@@ -1,0 +1,51 @@
+<div class="panel">
+    <h3 class="panel-title">@Place</h3>
+    <p style="color:var(--dc-muted);margin-bottom:1rem">@Description</p>
+
+    <div class="action-grid">
+        <button class="btn btn-gold" @onclick="OnQuest">Quest</button>
+        <button class="btn" @onclick="OnRest">Rest (New Day)</button>
+        <button class="btn" @onclick="OnRankings">Rankings</button>
+        <button class="btn" @onclick="ToggleTravel">Travel</button>
+    </div>
+
+    @if (showTravel)
+    {
+        <div style="margin-top:1rem">
+            <h4 style="color:var(--dc-gold);font-size:0.9rem">Travel to:</h4>
+            <div class="action-grid" style="margin-top:0.5rem">
+                @foreach (var dest in GetDestinations())
+                {
+                    var d = dest;
+                    <button class="btn btn-sm" @onclick="() => TravelTo(d)">@d</button>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string? Description { get; set; }
+    [Parameter] public string? Place { get; set; }
+    [Parameter] public List<string> Actions { get; set; } = new();
+    [Parameter] public EventCallback<string> OnAction { get; set; }
+
+    private bool showTravel;
+
+    private Task OnQuest() => OnAction.InvokeAsync("Quest");
+    private Task OnRest() => OnAction.InvokeAsync("Rest");
+    private Task OnRankings() => OnAction.InvokeAsync("Rankings");
+    private void ToggleTravel() => showTravel = !showTravel;
+    private Task TravelTo(string dest) => OnAction.InvokeAsync($"Travel:{dest}");
+
+    private string[] GetDestinations() => Place switch
+    {
+        "Town" => new[] { "Fields", "Castle" },
+        "Fields" => new[] { "Town", "Forest", "Mound" },
+        "Forest" => new[] { "Fields", "Hills" },
+        "Hills" => new[] { "Forest" },
+        "Mound" => new[] { "Fields" },
+        "Castle" => new[] { "Town" },
+        _ => new[] { "Town" }
+    };
+}

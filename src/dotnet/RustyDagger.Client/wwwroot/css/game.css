@@ -1,0 +1,363 @@
+/* Dragon Court — RustyDagger Game Styles */
+
+:root {
+    --dc-bg: #1a1a2e;
+    --dc-panel: #16213e;
+    --dc-accent: #e94560;
+    --dc-gold: #d4a017;
+    --dc-text: #eee;
+    --dc-muted: #888;
+    --dc-border: #333;
+    --dc-success: #4caf50;
+    --dc-danger: #f44336;
+    --dc-info: #2196f3;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: var(--dc-bg);
+    color: var(--dc-text);
+    min-height: 100vh;
+}
+
+.game-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.game-header {
+    text-align: center;
+    padding: 1rem;
+    background: var(--dc-panel);
+    border-bottom: 2px solid var(--dc-gold);
+}
+
+.game-header h1 {
+    font-size: 1.8rem;
+    color: var(--dc-gold);
+    margin: 0;
+}
+
+.game-header .subtitle {
+    font-size: 0.9rem;
+    color: var(--dc-muted);
+}
+
+.game-main {
+    flex: 1;
+    padding: 1rem;
+}
+
+.game-footer {
+    text-align: center;
+    padding: 0.5rem;
+    color: var(--dc-muted);
+    font-size: 0.75rem;
+    border-top: 1px solid var(--dc-border);
+}
+
+/* Panels */
+.panel {
+    background: var(--dc-panel);
+    border: 1px solid var(--dc-border);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.panel-title {
+    color: var(--dc-gold);
+    font-size: 1.1rem;
+    margin-bottom: 0.75rem;
+    border-bottom: 1px solid var(--dc-border);
+    padding-bottom: 0.5rem;
+}
+
+/* Forms */
+.form-group {
+    margin-bottom: 0.75rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.25rem;
+    color: var(--dc-muted);
+    font-size: 0.85rem;
+}
+
+.form-group input, .form-group select {
+    width: 100%;
+    padding: 0.5rem;
+    background: var(--dc-bg);
+    border: 1px solid var(--dc-border);
+    border-radius: 4px;
+    color: var(--dc-text);
+    font-size: 0.9rem;
+}
+
+.form-group input:focus, .form-group select:focus {
+    border-color: var(--dc-gold);
+    outline: none;
+}
+
+/* Buttons */
+.btn {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--dc-border);
+    border-radius: 4px;
+    background: var(--dc-panel);
+    color: var(--dc-text);
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+}
+
+.btn:hover {
+    background: var(--dc-bg);
+    border-color: var(--dc-gold);
+}
+
+.btn-primary {
+    background: var(--dc-accent);
+    border-color: var(--dc-accent);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #c43a52;
+}
+
+.btn-gold {
+    background: var(--dc-gold);
+    border-color: var(--dc-gold);
+    color: #000;
+    font-weight: bold;
+}
+
+.btn-gold:hover {
+    background: #b8860b;
+}
+
+.btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.8rem;
+}
+
+.btn-block {
+    display: block;
+    width: 100%;
+    margin-bottom: 0.5rem;
+}
+
+/* Stats Display */
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+    text-align: center;
+}
+
+.stat-box {
+    background: var(--dc-bg);
+    padding: 0.5rem;
+    border-radius: 4px;
+    border: 1px solid var(--dc-border);
+}
+
+.stat-label {
+    font-size: 0.7rem;
+    color: var(--dc-muted);
+    text-transform: uppercase;
+}
+
+.stat-value {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: var(--dc-gold);
+}
+
+/* HP Bar */
+.hp-bar {
+    height: 20px;
+    background: var(--dc-bg);
+    border-radius: 10px;
+    overflow: hidden;
+    margin: 0.5rem 0;
+}
+
+.hp-bar-fill {
+    height: 100%;
+    background: var(--dc-success);
+    transition: width 0.3s;
+    border-radius: 10px;
+}
+
+.hp-bar-fill.warning {
+    background: orange;
+}
+
+.hp-bar-fill.danger {
+    background: var(--dc-danger);
+}
+
+/* Game Log */
+.game-log {
+    background: var(--dc-bg);
+    border: 1px solid var(--dc-border);
+    border-radius: 4px;
+    padding: 0.5rem;
+    max-height: 200px;
+    overflow-y: auto;
+    font-family: 'Courier New', monospace;
+    font-size: 0.8rem;
+}
+
+.game-log p {
+    margin: 0.15rem 0;
+    padding: 0.1rem 0;
+    border-bottom: 1px solid rgba(51,51,51,0.3);
+}
+
+.game-log .log-combat { color: var(--dc-accent); }
+.game-log .log-info { color: var(--dc-info); }
+.game-log .log-success { color: var(--dc-success); }
+.game-log .log-danger { color: var(--dc-danger); }
+
+/* Action buttons grid */
+.action-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+}
+
+/* Game viewport (mimics original 400x300) */
+.game-viewport {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+/* Monster portrait */
+.monster-portrait {
+    text-align: center;
+    padding: 1rem;
+}
+
+.monster-portrait img {
+    max-width: 150px;
+    max-height: 150px;
+    border: 2px solid var(--dc-gold);
+    border-radius: 8px;
+}
+
+.monster-portrait .monster-name {
+    font-size: 1.1rem;
+    color: var(--dc-gold);
+    margin-top: 0.5rem;
+}
+
+/* Location tabs */
+.location-tabs {
+    display: flex;
+    gap: 0.25rem;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.location-tab {
+    padding: 0.4rem 0.8rem;
+    background: var(--dc-bg);
+    border: 1px solid var(--dc-border);
+    border-radius: 4px 4px 0 0;
+    cursor: pointer;
+    font-size: 0.8rem;
+    color: var(--dc-muted);
+}
+
+.location-tab.active {
+    background: var(--dc-panel);
+    color: var(--dc-gold);
+    border-bottom-color: var(--dc-panel);
+}
+
+.location-tab:hover {
+    color: var(--dc-text);
+}
+
+/* Error message */
+.error-msg {
+    color: var(--dc-danger);
+    font-size: 0.85rem;
+    margin: 0.5rem 0;
+}
+
+/* Loading */
+.loading-screen {
+    text-align: center;
+    padding: 3rem;
+    color: var(--dc-gold);
+}
+
+/* Auth form */
+.auth-panel {
+    max-width: 400px;
+    margin: 2rem auto;
+}
+
+/* Tabs */
+.tab-bar {
+    display: flex;
+    border-bottom: 2px solid var(--dc-border);
+    margin-bottom: 1rem;
+}
+
+.tab-bar button {
+    flex: 1;
+    padding: 0.5rem;
+    background: none;
+    border: none;
+    color: var(--dc-muted);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+}
+
+.tab-bar button.active {
+    color: var(--dc-gold);
+    border-bottom-color: var(--dc-gold);
+}
+
+/* Two-column game layout */
+.game-layout {
+    display: grid;
+    grid-template-columns: 250px 1fr;
+    gap: 1rem;
+}
+
+.game-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+@media (max-width: 640px) {
+    .game-layout {
+        grid-template-columns: 1fr;
+    }
+    .stats-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    .action-grid {
+        grid-template-columns: 1fr;
+    }
+}

@@ -1,3 +1,27 @@
+# Gradle
 .gradle/
 gradle/
 build/
+
+# .NET build outputs
+bin/
+obj/
+
+# Visual Studio
+*.user
+*.suo
+.vs/
+.idea/
+
+# NuGet
+*.nupkg
+project.lock.json
+artifacts/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+

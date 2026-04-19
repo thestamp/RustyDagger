@@ -1,0 +1,64 @@
+@page "/rankings"
+@inject ApiClient Api
+@inject NavigationManager Nav
+
+<div class="panel">
+    <h2 class="panel-title">Hall of Fame</h2>
+
+    @if (loading)
+    {
+        <p>Loading rankings...</p>
+    }
+    else if (rankings.Count == 0)
+    {
+        <p style="color:var(--dc-muted)">No heroes ranked yet.</p>
+    }
+    else
+    {
+        <table style="width:100%;border-collapse:collapse;font-size:0.85rem">
+            <thead>
+                <tr style="border-bottom:2px solid var(--dc-border);color:var(--dc-gold)">
+                    <th style="text-align:left;padding:0.3rem">#</th>
+                    <th style="text-align:left;padding:0.3rem">Hero</th>
+                    <th style="text-align:left;padding:0.3rem">Account</th>
+                    <th style="padding:0.3rem">Lv</th>
+                    <th style="padding:0.3rem">Fame</th>
+                    <th style="padding:0.3rem">Guts</th>
+                    <th style="padding:0.3rem">Wits</th>
+                    <th style="padding:0.3rem">Charm</th>
+                </tr>
+            </thead>
+            <tbody>
+                @for (int i = 0; i < rankings.Count; i++)
+                {
+                    var r = rankings[i];
+                    <tr style="border-bottom:1px solid var(--dc-border)">
+                        <td style="padding:0.3rem;color:var(--dc-muted)">@(i + 1)</td>
+                        <td style="padding:0.3rem">@r.HeroName</td>
+                        <td style="padding:0.3rem;color:var(--dc-muted)">@r.AccountName</td>
+                        <td style="padding:0.3rem;text-align:center">@r.Level</td>
+                        <td style="padding:0.3rem;text-align:center;color:var(--dc-gold)">@r.Fame</td>
+                        <td style="padding:0.3rem;text-align:center">@r.Guts</td>
+                        <td style="padding:0.3rem;text-align:center">@r.Wits</td>
+                        <td style="padding:0.3rem;text-align:center">@r.Charm</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+
+    <button class="btn btn-block" style="margin-top:1rem" @onclick="GoBack">Back</button>
+</div>
+
+@code {
+    private List<RankingEntry> rankings = new();
+    private bool loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        rankings = await Api.GetRankingsAsync();
+        loading = false;
+    }
+
+    private void GoBack() => Nav.NavigateTo(Api.IsAuthenticated ? "/heroes" : "/");
+}

@@ -1,0 +1,59 @@
+@page "/heroes"
+@inject ApiClient Api
+@inject GameStateService State
+@inject NavigationManager Nav
+
+<div class="panel">
+    <h2 class="panel-title">Your Heroes</h2>
+
+    @if (loading)
+    {
+        <p>Loading heroes...</p>
+    }
+    else
+    {
+        @if (heroes.Count > 0)
+        {
+            @foreach (var h in heroes)
+            {
+                <div class="panel" style="cursor:pointer" @onclick="() => SelectHero(h.Id)">
+                    <strong style="color:var(--dc-gold)">@h.Name</strong>
+                    <span style="color:var(--dc-muted)"> — Level @h.Level @h.Place</span>
+                    <div class="stats-grid" style="margin-top:0.5rem">
+                        <div class="stat-box"><div class="stat-label">Guts</div><div class="stat-value">@h.Guts</div></div>
+                        <div class="stat-box"><div class="stat-label">Wits</div><div class="stat-value">@h.Wits</div></div>
+                        <div class="stat-box"><div class="stat-label">Charm</div><div class="stat-value">@h.Charm</div></div>
+                    </div>
+                </div>
+            }
+        }
+        else
+        {
+            <p style="color:var(--dc-muted)">No heroes yet. Create one below!</p>
+        }
+
+        <button class="btn btn-primary btn-block" @onclick="GoToCreate">Create New Hero</button>
+    }
+</div>
+
+@code {
+    private List<HeroSummary> heroes = new();
+    private bool loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Api.IsAuthenticated) { Nav.NavigateTo("/"); return; }
+        heroes = await Api.GetHeroesAsync();
+        loading = false;
+    }
+
+    private async Task SelectHero(int heroId)
+    {
+        State.ActiveHeroId = heroId;
+        var state = await Api.GetGameStateAsync(heroId);
+        if (state != null) State.SetState(state);
+        Nav.NavigateTo("/game");
+    }
+
+    private void GoToCreate() => Nav.NavigateTo("/create");
+}

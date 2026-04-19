@@ -1,0 +1,111 @@
+@page "/"
+@inject ApiClient Api
+@inject GameStateService State
+@inject NavigationManager Nav
+
+<div class="auth-panel panel">
+    <div class="tab-bar">
+        <button class="@(isLogin ? "active" : "")" @onclick="() => isLogin = true">Login</button>
+        <button class="@(!isLogin ? "active" : "")" @onclick="() => isLogin = false">Register</button>
+    </div>
+
+    @if (isLogin)
+    {
+        <EditForm Model="loginModel" OnValidSubmit="HandleLogin" FormName="login">
+            <DataAnnotationsValidator />
+            <div class="form-group">
+                <label>Name</label>
+                <InputText @bind-Value="loginModel.Name" />
+            </div>
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" @bind="loginModel.Password" />
+            </div>
+            <button type="submit" class="btn btn-gold btn-block" disabled="@busy">Enter the Court</button>
+        </EditForm>
+    }
+    else
+    {
+        <EditForm Model="registerModel" OnValidSubmit="HandleRegister" FormName="register">
+            <DataAnnotationsValidator />
+            <div class="form-group">
+                <label>Name (4–15 characters)</label>
+                <InputText @bind-Value="registerModel.Name" />
+            </div>
+            <div class="form-group">
+                <label>Password (6+ characters)</label>
+                <input type="password" @bind="registerModel.Password" />
+            </div>
+            <button type="submit" class="btn btn-gold btn-block" disabled="@busy">Create Account</button>
+        </EditForm>
+    }
+
+    @if (!string.IsNullOrEmpty(error))
+    {
+        <p class="error-msg">@error</p>
+    }
+</div>
+
+@code {
+    private LoginRequest loginModel = new();
+    private RegisterRequest registerModel = new();
+    private bool isLogin = true;
+    private bool busy;
+    private string? error;
+
+    protected override void OnInitialized()
+    {
+        if (Api.IsAuthenticated)
+            Nav.NavigateTo("/heroes");
+    }
+
+    private async Task HandleLogin()
+    {
+        busy = true;
+        error = null;
+        try
+        {
+            var result = await Api.LoginAsync(loginModel);
+            if (result.Success)
+            {
+                Api.SetToken(result.Token);
+                State.AccountName = result.Name;
+                Nav.NavigateTo("/heroes");
+            }
+            else
+            {
+                error = result.Error ?? "Login failed.";
+            }
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally { busy = false; }
+    }
+
+    private async Task HandleRegister()
+    {
+        busy = true;
+        error = null;
+        try
+        {
+            var result = await Api.RegisterAsync(registerModel);
+            if (result.Success)
+            {
+                Api.SetToken(result.Token);
+                State.AccountName = result.Name;
+                Nav.NavigateTo("/heroes");
+            }
+            else
+            {
+                error = result.Error ?? "Registration failed.";
+            }
+        }
+        catch (Exception ex)
+        {
+            error = ex.Message;
+        }
+        finally { busy = false; }
+    }
+}

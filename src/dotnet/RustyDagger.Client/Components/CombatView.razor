@@ -1,0 +1,46 @@
+<div class="panel">
+    @if (Monster != null)
+    {
+        <div style="text-align:center;margin-bottom:1rem">
+            <h3 style="color:var(--dc-accent)">@Monster.Name</h3>
+            <p style="color:var(--dc-muted);font-size:0.85rem">@Monster.Description</p>
+
+            <div class="hp-bar" style="margin:0.75rem auto;max-width:300px">
+                <div class="hp-bar-fill @GetHpClass(Monster.HealthPercent)"
+                     style="width:@(Monster.HealthPercent)%"></div>
+            </div>
+            <span style="font-size:0.8rem;color:var(--dc-muted)">HP: @Monster.HealthPercent%</span>
+        </div>
+
+        <h4 class="panel-title">Actions</h4>
+        <div class="action-grid">
+            @foreach (var action in Actions)
+            {
+                <button class="btn @GetActionStyle(action)"
+                        @onclick="() => OnAction.InvokeAsync(action)">
+                    @action
+                </button>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public MonsterView? Monster { get; set; }
+    [Parameter] public List<string> Actions { get; set; } = new();
+    [Parameter] public EventCallback<string> OnAction { get; set; }
+
+    private static string GetHpClass(int pct) => pct switch
+    {
+        <= 25 => "danger",
+        <= 50 => "warning",
+        _ => ""
+    };
+
+    private static string GetActionStyle(string action) => action switch
+    {
+        "Attack" or "Berzerk" or "Backstab" or "Ieatsu" or "Bushido" => "btn-primary",
+        "Runaway" => "",
+        _ => "btn-gold"
+    };
+}

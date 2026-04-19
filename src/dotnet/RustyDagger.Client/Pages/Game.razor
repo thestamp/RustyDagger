@@ -1,0 +1,177 @@
+@page "/game"
+@implements IDisposable
+@inject ApiClient Api
+@inject GameStateService State
+@inject NavigationManager Nav
+
+@if (State.CurrentState == null)
+{
+    <div class="loading-screen"><p>Loading game state...</p></div>
+}
+else
+{
+    <div class="game-layout">
+        <aside class="game-sidebar">
+            <div class="panel">
+                <h3 class="panel-title">@State.CurrentState.Hero.Name</h3>
+                <div style="color:var(--dc-muted);font-size:0.8rem;margin-bottom:0.5rem">
+                    Level @State.CurrentState.Hero.Level &bull; @State.CurrentState.Hero.Place
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-box"><div class="stat-label">Guts</div><div class="stat-value">@State.CurrentState.Hero.Guts</div></div>
+                    <div class="stat-box"><div class="stat-label">Wits</div><div class="stat-value">@State.CurrentState.Hero.Wits</div></div>
+                    <div class="stat-box"><div class="stat-label">Charm</div><div class="stat-value">@State.CurrentState.Hero.Charm</div></div>
+                </div>
+                <div style="text-align:center;margin-top:0.5rem;color:var(--dc-gold);font-size:0.85rem">
+                    Fame: @State.CurrentState.Hero.Fame
+                </div>
+            </div>
+
+            <div class="panel">
+                <h3 class="panel-title">Game Log</h3>
+                <div class="game-log" @ref="logDiv">
+                    @foreach (var entry in State.GameLog)
+                    {
+                        <p class="@GetLogClass(entry)">@entry</p>
+                    }
+                </div>
+            </div>
+        </aside>
+
+        <section>
+            @switch (State.CurrentState.Screen)
+            {
+                case "Battle":
+                    <CombatView Monster="State.CurrentState.CurrentMonster"
+                                Actions="State.CurrentState.AvailableActions"
+                                OnAction="HandleCombatAction" />
+                    break;
+
+                case "Dead":
+                    <div class="panel" style="text-align:center">
+                        <h2 style="color:var(--dc-danger)">You Have Fallen</h2>
+                        <p style="color:var(--dc-muted)">Your hero has been slain in battle.</p>
+                        <button class="btn btn-primary" @onclick="ReturnToHeroes">Return to Heroes</button>
+                    </div>
+                    break;
+
+                case "QuestResult":
+                    <div class="panel">
+                        <h3 class="panel-title">Quest Complete</h3>
+                        @foreach (var msg in State.CurrentState.Log)
+                        {
+                            <p>@msg</p>
+                        }
+                        <button class="btn btn-gold btn-block" style="margin-top:1rem" @onclick="RefreshState">Continue</button>
+                    </div>
+                    break;
+
+                default:
+                    <AreaView Description="@State.CurrentState.AreaDescription"
+                              Place="@State.CurrentState.Hero.Place"
+                              Actions="State.CurrentState.AvailableActions"
+                              OnAction="HandleTownAction" />
+                    break;
+            }
+        </section>
+    </div>
+}
+
+@code {
+    private ElementReference logDiv;
+    private bool busy;
+
+    protected override void OnInitialized()
+    {
+        if (!Api.IsAuthenticated || State.ActiveHeroId == null)
+        {
+            Nav.NavigateTo("/");
+            return;
+        }
+        State.OnStateChanged += HandleStateChanged;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (State.CurrentState == null && State.ActiveHeroId != null)
+        {
+            var state = await Api.GetGameStateAsync(State.ActiveHeroId.Value);
+            if (state != null) State.SetState(state);
+        }
+    }
+
+    private void HandleStateChanged() => InvokeAsync(StateHasChanged);
+
+    private async Task HandleTownAction(string action)
+    {
+        if (busy || State.ActiveHeroId == null) return;
+        busy = true;
+
+        try
+        {
+            GameStateResponse? result = action switch
+            {
+                "Quest" => await Api.QuestAsync(State.ActiveHeroId.Value),
+                "Rest" => await Api.RestAsync(State.ActiveHeroId.Value),
+                "Status" => State.CurrentState,
+                "Rankings" => null,
+                _ when action.StartsWith("Travel:") =>
+                    await Api.TravelAsync(State.ActiveHeroId.Value,
+                        action.Substring("Travel:".Length)),
+                _ => null
+            };
+
+            if (action == "Rankings")
+            {
+                Nav.NavigateTo("/rankings");
+                return;
+            }
+
+            if (result != null) State.SetState(result);
+        }
+        catch (Exception ex)
+        {
+            State.AddLog($"Error: {ex.Message}");
+        }
+        finally { busy = false; }
+    }
+
+    private async Task HandleCombatAction(string action)
+    {
+        if (busy || State.ActiveHeroId == null) return;
+        busy = true;
+
+        try
+        {
+            var result = await Api.CombatAsync(State.ActiveHeroId.Value, action);
+            if (result != null) State.SetState(result);
+        }
+        catch (Exception ex)
+        {
+            State.AddLog($"Error: {ex.Message}");
+        }
+        finally { busy = false; }
+    }
+
+    private async Task RefreshState()
+    {
+        if (State.ActiveHeroId == null) return;
+        var state = await Api.GetGameStateAsync(State.ActiveHeroId.Value);
+        if (state != null) State.SetState(state);
+    }
+
+    private void ReturnToHeroes() => Nav.NavigateTo("/heroes");
+
+    private static string GetLogClass(string entry)
+    {
+        if (entry.Contains("defeated") || entry.Contains("gained")) return "log-success";
+        if (entry.Contains("Error") || entry.Contains("slain")) return "log-danger";
+        if (entry.Contains("hit") || entry.Contains("attack")) return "log-combat";
+        return "log-info";
+    }
+
+    public void Dispose()
+    {
+        State.OnStateChanged -= HandleStateChanged;
+    }
+}
