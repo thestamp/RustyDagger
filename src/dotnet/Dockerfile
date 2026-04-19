@@ -13,7 +13,8 @@ RUN dotnet restore RustyDagger.slnx
 
 # Copy everything else and publish
 COPY . .
-RUN dotnet publish RustyDagger.Server/RustyDagger.Server.csproj -c Release -o /app/publish
+RUN dotnet build RustyDagger.slnx -c Release --no-restore
+RUN dotnet publish RustyDagger.Server/RustyDagger.Server.csproj -c Release -o /app/publish --no-build
 
 # Runtime image
 FROM mcr.microsoft.com/dotnet/aspnet:10.0-preview AS runtime
